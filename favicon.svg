@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFE9C7"/>
+      <stop offset="100%" stop-color="#FFD89C"/>
+    </linearGradient>
+    <linearGradient id="sunGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F7C548"/>
+      <stop offset="100%" stop-color="#F4A896"/>
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="32" r="32" fill="url(#skyGrad)"/>
+  <g stroke="url(#sunGrad)" stroke-width="3.5" stroke-linecap="round">
+    <line x1="32" y1="6" x2="32" y2="13"/>
+    <line x1="32" y1="51" x2="32" y2="58"/>
+    <line x1="6" y1="32" x2="13" y2="32"/>
+    <line x1="51" y1="32" x2="58" y2="32"/>
+    <line x1="13.5" y1="13.5" x2="18.5" y2="18.5"/>
+    <line x1="45.5" y1="45.5" x2="50.5" y2="50.5"/>
+    <line x1="13.5" y1="50.5" x2="18.5" y2="45.5"/>
+    <line x1="45.5" y1="18.5" x2="50.5" y2="13.5"/>
+  </g>
+  <circle cx="32" cy="32" r="14" fill="url(#sunGrad)"/>
+</svg>

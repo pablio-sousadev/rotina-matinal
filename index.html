@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Rotina da Manhã</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+    background: linear-gradient(180deg, #FFE9C7 0%, #FFF6E8 45%, #FFF9F0 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 28px 14px 50px;
+  }
+  .wrap { width: 100%; max-width: 460px; }
+
+  .header { text-align: center; margin-bottom: 22px; animation: float 4s ease-in-out infinite; }
+  .header .sun { font-size: 50px; line-height: 1; }
+  .header h1 { font-size: 24px; font-weight: 800; color: #5A4632; margin: 8px 0 4px; letter-spacing: -0.02em; }
+  .header p { color: #9C8568; font-size: 14px; margin: 0; }
+
+  .progress-bar {
+    background: #fff;
+    border-radius: 18px;
+    padding: 10px 16px;
+    margin-bottom: 18px;
+    box-shadow: 0 4px 16px rgba(180,140,80,0.12);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .progress-track { flex: 1; height: 9px; background: #F3E9D8; border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #F7C548, #F4A896); border-radius: 999px; transition: width 0.4s ease; width: 0%; }
+  .progress-count { font-size: 13px; font-weight: 700; color: #8A7456; min-width: 38px; text-align: right; }
+
+  .task-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .task {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 15px;
+    border-radius: 16px;
+    border: none;
+    background: #fff;
+    box-shadow: 0 3px 12px rgba(180,140,80,0.10);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: all 0.2s ease;
+    animation: pop 0.4s ease both;
+    opacity: 1;
+  }
+  .task:disabled { opacity: 0.6; pointer-events: none; }
+  .task:active { transform: scale(0.97); }
+  .task.done { box-shadow: inset 0 0 0 2px var(--c); background: color-mix(in srgb, var(--c) 13%, white); }
+
+  .icon-box {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 19px;
+    flex-shrink: 0;
+    background: color-mix(in srgb, var(--c) 22%, white);
+    transition: all 0.2s ease;
+  }
+  .task.done .icon-box { background: var(--c); }
+
+  .task-label { flex: 1; font-size: 15.5px; font-weight: 700; color: #5A4632; transition: all 0.2s ease; }
+  .task-label .sub { display: block; font-size: 12px; font-weight: 600; color: #B49A78; margin-top: 1px; }
+  .task.done .task-label { text-decoration: line-through; opacity: 0.65; }
+
+  .check {
+    width: 25px; height: 25px;
+    border-radius: 50%;
+    border: 2px solid #E5D7C0;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+  }
+  .task.done .check { border: none; background: var(--c); }
+  .check svg { display: none; width: 14px; height: 14px; }
+  .task.done .check svg { display: block; }
+
+  .celebrate {
+    margin-top: 20px;
+    text-align: center;
+    padding: 16px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #F7C548, #F4A896);
+    color: #fff;
+    font-weight: 800;
+    font-size: 16px;
+    display: none;
+    animation: pop 0.4s ease both;
+  }
+  .celebrate.show { display: block; }
+
+  .footer-note { text-align: center; color: #C2AE8E; font-size: 12px; margin-top: 22px; }
+  .status-note { text-align: center; color: #C2AE8E; font-size: 12px; margin-top: 8px; min-height: 16px; }
+
+  @keyframes pop {
+    0% { transform: scale(0.7); opacity: 0; }
+    60% { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="sun">☀️</div>
+      <h1>Bom dia!</h1>
+      <p>Vamos arrumar tudo antes de brincar com o tablet?</p>
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-count" id="progressCount">0/10</div>
+    </div>
+
+    <div class="task-list" id="taskList"></div>
+
+    <div class="celebrate" id="celebrate">Tudo pronto! Agora é só aproveitar 🎉</div>
+
+    <p class="status-note" id="statusNote"></p>
+    <p class="footer-note">A lista reaparece sozinha amanhã de manhã ✨</p>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ===== CONFIGURE AQUI =====
+  const SUPABASE_URL = "COLOQUE_SUA_URL_AQUI";
+  const SUPABASE_ANON_KEY = "COLOQUE_SUA_ANON_KEY_AQUI";
+  // ===========================
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const TASKS = [
+    { id: "cama",     label: "Arrumar a cama",                         icon: "🛏️", color: "#9FB6E8" },
+    { id: "dentes",   label: "Escovar os dentes",                      icon: "🪥", color: "#7DD3C0" },
+    { id: "passear",  label: "Passear com o Luffy",                    icon: "🐕", color: "#E8A87C" },
+    { id: "comida",   label: "Colocar comida e água pro Luffy",        icon: "🥣", color: "#C9A0DC" },
+    { id: "varrer",   label: "Varrer a casa",                          icon: "🧹", color: "#F7C548" },
+    { id: "loucinha", label: "Lavar a louça", sub: "se tiver",         icon: "🍽️", color: "#7FB3D5" },
+    { id: "sala",     label: "Arrumar a sala",                         icon: "🛋️", color: "#F4A896" },
+    { id: "estudar",  label: "Estudar",                                icon: "📚", color: "#8FBF8F" },
+    { id: "banho",    label: "Tomar banho e se arrumar", sub: "às 11:00, pra ir pra escola", icon: "🚿", color: "#6FC2C2" },
+    { id: "mochila",  label: "Arrumar a mochila",                      icon: "🎒", color: "#D4A574" },
+  ];
+
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  }
+
+  const today = todayStr();
+  let done = {};
+  let ready = false;
+
+  async function loadDone() {
+    setStatus("Carregando…");
+    const { data, error } = await supabase
+      .from("routine_logs")
+      .select("task_id, done")
+      .eq("log_date", today);
+
+    if (error) {
+      console.error(error);
+      setStatus("Não consegui conectar — tentando salvar localmente.");
+      // fallback local pra não travar o app
+      try {
+        const raw = localStorage.getItem("rotina_fallback_" + today);
+        done = raw ? JSON.parse(raw) : {};
+      } catch (e) { done = {}; }
+    } else {
+      data.forEach(row => { if (row.done) done[row.task_id] = true; });
+      setStatus("");
+    }
+    ready = true;
+    render();
+  }
+
+  async function toggle(id) {
+    done[id] = !done[id];
+    render();
+
+    const { error } = await supabase
+      .from("routine_logs")
+      .upsert(
+        { log_date: today, task_id: id, done: done[id], completed_at: done[id] ? new Date().toISOString() : null },
+        { onConflict: "log_date,task_id" }
+      );
+
+    if (error) {
+      console.error(error);
+      setStatus("Salvo só neste tablet (sem internet).");
+      try {
+        localStorage.setItem("rotina_fallback_" + today, JSON.stringify(done));
+      } catch (e) {}
+    } else {
+      setStatus("");
+      try { localStorage.removeItem("rotina_fallback_" + today); } catch (e) {}
+    }
+
+    const allDone = TASKS.every(t => done[t.id]);
+    const celebrate = document.getElementById("celebrate");
+    celebrate.classList.toggle("show", allDone);
+  }
+
+  function setStatus(msg) {
+    document.getElementById("statusNote").textContent = msg;
+  }
+
+  function render() {
+    const list = document.getElementById("taskList");
+    list.innerHTML = "";
+    TASKS.forEach((task, i) => {
+      const isDone = !!done[task.id];
+      const btn = document.createElement("button");
+      btn.className = "task" + (isDone ? " done" : "");
+      if (!ready) btn.disabled = true;
+      btn.style.setProperty("--c", task.color);
+      btn.style.animationDelay = (i * 0.05) + "s";
+      btn.innerHTML = `
+        <div class="icon-box">${task.icon}</div>
+        <div class="task-label">${task.label}${task.sub ? `<span class="sub">${task.sub}</span>` : ""}</div>
+        <div class="check">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+      `;
+      btn.addEventListener("click", () => toggle(task.id));
+      list.appendChild(btn);
+    });
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const count = TASKS.filter(t => done[t.id]).length;
+    document.getElementById("progressFill").style.width = (count / TASKS.length * 100) + "%";
+    document.getElementById("progressCount").textContent = `${count}/${TASKS.length}`;
+  }
+
+  loadDone();
+</script>
+</body>
+</html>

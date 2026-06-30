@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Acompanhamento — Rotina</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+    background: linear-gradient(180deg, #FFE9C7 0%, #FFF6E8 45%, #FFF9F0 100%);
+    min-height: 100vh;
+    padding: 28px 14px 60px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+
+  .header { text-align: center; margin-bottom: 24px; }
+  .header h1 { font-size: 24px; font-weight: 800; color: #5A4632; margin: 0 0 4px; }
+  .header p { color: #9C8568; font-size: 14px; margin: 0; }
+
+  .day-card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 16px rgba(180,140,80,0.12);
+  }
+  .day-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .day-date { font-size: 15px; font-weight: 800; color: #5A4632; text-transform: capitalize; }
+  .day-score { font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 999px; color: #fff; }
+  .score-full { background: #8FBF8F; }
+  .score-partial { background: #F7C548; }
+  .score-low { background: #E89090; }
+
+  .task-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 14px;
+    color: #7A6650;
+  }
+  .task-row .mark { width: 18px; text-align: center; }
+  .task-row.done { color: #5A4632; font-weight: 600; }
+  .task-row.pending { opacity: 0.55; }
+  .task-time { margin-left: auto; font-size: 11px; color: #B49A78; }
+
+  .empty, .loading {
+    text-align: center;
+    color: #B49A78;
+    padding: 40px 20px;
+    font-size: 14px;
+  }
+
+  .config-warning {
+    background: #fff3e0;
+    border: 1px solid #F4A896;
+    border-radius: 14px;
+    padding: 14px 16px;
+    color: #8A5A40;
+    font-size: 13px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>📋 Acompanhamento</h1>
+      <p>Histórico de rotina, dia a dia</p>
+    </div>
+    <div id="content" class="loading">Carregando…</div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ===== CONFIGURE AQUI (igual ao index.html) =====
+  const SUPABASE_URL = "COLOQUE_SUA_URL_AQUI";
+  const SUPABASE_ANON_KEY = "COLOQUE_SUA_ANON_KEY_AQUI";
+  // ==================================================
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const TASKS = [
+    { id: "cama",     label: "Arrumar a cama" },
+    { id: "dentes",   label: "Escovar os dentes" },
+    { id: "passear",  label: "Passear com o Luffy" },
+    { id: "comida",   label: "Colocar comida e água pro Luffy" },
+    { id: "varrer",   label: "Varrer a casa" },
+    { id: "loucinha", label: "Lavar a louça" },
+    { id: "sala",     label: "Arrumar a sala" },
+    { id: "estudar",  label: "Estudar" },
+    { id: "banho",    label: "Tomar banho e se arrumar" },
+    { id: "mochila",  label: "Arrumar a mochila" },
+  ];
+
+  function formatDate(dateStr) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
+    return date.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
+  }
+
+  function formatTime(iso) {
+    if (!iso) return "";
+    return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  async function loadHistory() {
+    const content = document.getElementById("content");
+
+    if (SUPABASE_URL.includes("COLOQUE_SUA_URL_AQUI")) {
+      content.innerHTML = `<div class="config-warning">
+        ⚠️ Ainda falta configurar o Supabase neste arquivo: preencha SUPABASE_URL e SUPABASE_ANON_KEY no início do script.
+      </div>`;
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("routine_logs")
+      .select("log_date, task_id, done, completed_at")
+      .order("log_date", { ascending: false });
+
+    if (error) {
+      content.innerHTML = `<div class="config-warning">Não consegui carregar os dados: ${error.message}</div>`;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      content.innerHTML = `<div class="empty">Ainda não há nenhum registro. Assim que ela começar a usar o app, o histórico aparece aqui.</div>`;
+      return;
+    }
+
+    // agrupa por dia
+    const byDate = {};
+    data.forEach(row => {
+      if (!byDate[row.log_date]) byDate[row.log_date] = {};
+      byDate[row.log_date][row.task_id] = row;
+    });
+
+    const dates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
+
+    content.innerHTML = dates.map(date => {
+      const rows = byDate[date];
+      const doneCount = TASKS.filter(t => rows[t.id] && rows[t.id].done).length;
+      const total = TASKS.length;
+
+      let scoreClass = "score-low";
+      if (doneCount === total) scoreClass = "score-full";
+      else if (doneCount >= total / 2) scoreClass = "score-partial";
+
+      const taskRows = TASKS.map(t => {
+        const row = rows[t.id];
+        const isDone = row && row.done;
+        return `
+          <div class="task-row ${isDone ? "done" : "pending"}">
+            <span class="mark">${isDone ? "✅" : "⬜"}</span>
+            <span>${t.label}</span>
+            ${isDone && row.completed_at ? `<span class="task-time">${formatTime(row.completed_at)}</span>` : ""}
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <div class="day-card">
+          <div class="day-card-head">
+            <span class="day-date">${formatDate(date)}</span>
+            <span class="day-score ${scoreClass}">${doneCount}/${total}</span>
+          </div>
+          ${taskRows}
+        </div>
+      `;
+    }).join("");
+  }
+
+  loadHistory();
+</script>
+</body>
+</html>
